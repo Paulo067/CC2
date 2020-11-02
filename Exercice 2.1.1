@@ -1,0 +1,185 @@
+#question a)
+
+#Loi Poisson composée
+
+lam<-2
+EM<-lam
+VarM<-EM
+
+# Loi de sinistre: gamma
+
+a1<-1.5
+b1<-1.5/100
+EB<-a1/b1
+VarB<-a1/b1^2
+
+
+#calcul de l'espérance de X
+EX<-EM*EB
+
+#question b)
+VarX<-EM*VarB+VarM*(EB^2)
+SIGX<-sqrt(VarX)
+
+c(EX,VarX,SIGX)
+
+#question c)
+xx<-seq(0,2000,50)
+
+k0<-1000
+vk<-1:k0
+pM<-dpois(vk,lam)
+p0<-dpois(0,lam)
+p0+sum(pM)
+
+
+#fonction de répartition de X
+frpoissoncompgamma<-function(xx) {
+  p0+sum(pM*pgamma(xx,a1*vk,b1))
+}
+
+Fx<-sapply(xx, function(xx) frpoissoncompgamma(xx)) 
+
+cbind(Fx)
+
+#calcul de F(EX)
+FEX<-p0+sum(pM*pgamma(200,a1*vk,b1)) #sert également de vérification
+
+#graphique de Fx avec EX et DEX
+plot(xx, Fx,type="l",lty=1, lwd=2,main="Fonction de répartition de X", xlab="x", ylab="F(x)",col="blue",ylim = c(0,1))
+abline(h=FEX,col="green", lty=2, lwd=2)
+abline(v=EX,col="purple", lty=2, lwd=2)
+legend(530, 0.2, legend=c("Fonction de répartition de X","F(E[X])", 
+                          "E[X]"), col=c("blue", "green", "purple","purple"), 
+       lty=c(1,2,2), cex=1.1,bg='lightgrey',lwd=2:2)
+
+
+
+#question d)
+#calcul de l'espérance tronquée
+
+ETXX<-function(xx){
+  FXX2<-sum(((a1*vk)/b1)*pM*(1-pgamma(xx,a1*vk+1,b1)))
+}
+
+ETX<-sapply(xx,function(xx)ETXX(xx))
+
+cbind(ETX)
+
+#graphique de l'espérance tronquée
+
+plot(xx, ETX,ylab="E[X * 1 {X > x}]",col="blue",xlab="x", main="Espérance Tronquée de X pour X>x",type="l",lty=1, lwd=2)
+abline(h=EX,col="purple", lty=2, lwd=2)
+legend(700, 190, legend=c("Espérance Tronquée","E[X]"),lty=c(1,2), cex=1.1,bg='lightgrey',lwd=2:2,col=c("blue","purple"))
+
+#question e)
+#calcul de la fonction stop-loss
+PIXX<-function(xx)
+{
+  PI1<-sum(((a1*vk)/b1)*pM*(1-pgamma(xx,a1*vk+1,b1)))
+  PI2<-xx*(1-(p0+sum(pM*pgamma(xx,a1*vk,b1))))
+  PI<-PI1-PI2
+}
+PIX<-sapply(xx,function(xx) PIXX(xx))
+
+PIX2<-ETX-xx*(1-Fx) #verification
+
+
+cbind(PIX)
+
+#graphique de la fonction stop-loss
+plot(xx, PIX,type="l",lty=1, lwd=2,main="Fonction Stop-Loss", xlab="x", ylab="PI(x)",col="blue")
+abline(h=EX,col="purple", lty=2, lwd=2)
+legend(900, 190, legend=c("Fonction Stop-Loss","E[X]"),lty=c(1,2), cex=1.1,bg='lightgrey',lwd=2:2,col=c("blue","purple"))
+
+#question f)
+k<-c(0.001, 0.01, 0.05, 0.5, 0.95, 0.99, 0.999)
+j<-seq(0.01,0.99,0.01)
+h<-c(0.001)
+z<-c(0.999)
+b<-c(h,j,z)
+
+opti<-function(b){
+  o<-optimize(function(xx) abs(frpoissoncompgamma(xx)-b[]),c(0:2000),maximum=FALSE)
+}
+
+opti22<-sapply(b,function(xx)opti(xx))
+VaRkappa<-cbind(opti22[1,])
+
+cbind(b,VaRkappa)
+
+#Graphique de la VaR par optimisation
+plot(b,VaRkappa,type="l",lty=1, lwd=2,main="Value at Risk", xlab="k", ylab="VaR",col="blue")
+points(k,defVaRk,col="red",lty=2,lwd=2)
+abline(h=EX,col="purple", lty=2, lwd=2)
+legend(0, 1100, legend=c("Value at Risk","Points de la VaR calculés en k","E[X]"),pch=c(NA,1,NA),lty=c(1,NA,2), cex=1.1,bg='lightgrey',lwd=2:2,col=c("blue","red","purple"))
+
+
+#question f)
+#Calc de la VaR par optimisation
+
+
+opti<-function(b){
+  o<-optimize(function(xx) abs(frpoissoncompgamma(xx)-b[]),c(0:2000),maximum=FALSE)
+}
+
+opti22<-sapply(b,function(xx)opti(xx))
+optik<-sapply(k,function(xx)opti(xx))
+
+VaRkappa<-cbind(opti22[1,])
+VaRkappasujet<-cbind(optik[1,])
+
+
+#Graphique de la VaR par optimisation
+plot(b,VaRkappa,type="l",lty=1, lwd=2,main="Value at Risk", xlab="k", ylab="VaR",col="blue")
+points(k,VaRkappasujet,col="red",lty=2,lwd=2)
+abline(h=EX,col="purple", lty=2, lwd=2)
+legend(0, 1100, legend=c("Value at Risk","Points de la VaR calculés en k","E[X]"),pch=c(NA,1,NA),lty=c(1,NA,2), cex=1.1,bg='lightgrey',lwd=2:2,col=c("blue","red","purple"))
+
+#question g)
+DVaRk<-c(5.624087e-05,5.624087e-05,5.624087e-05,159.057,555.0476,779.0378,1070.909)
+Dk<-(1/(1-k))
+Db<-(1/(1-b))
+#courbe TVAR TOTAL AVEC K GRAND
+TVARTOT<-sapply(VaRkappa,function(VaRkappa)ETXX(VaRkappa))
+TVAR3<-Db*TVARTOT
+
+EspTroTVAR<-sapply(DVaRk,function(DVaRk)ETXX(DVaRk))
+TVAR2<-Dk*EspTroTVAR
+
+plot(b,TVAR3,type="l",lty=1, lwd=2,main="Tail Value at Risk", xlab="k", ylab="TVaR",col="blue")
+points(k,TVAR2,col="red",lty=2,lwd=2)
+abline(h=EX,col="purple", lty=2, lwd=2)
+legend(0, 1200, legend=c("Tail Value at Risk","Points de la TVaR calculés en k","E[X]"),pch=c(NA,1,NA),lty=c(1,NA,2), cex=1.1,bg='lightgrey',lwd=2:2,col=c("blue","red","purple"))
+
+
+#question h)
+PIXV<-sapply(DVaRk,function(DVaRk) PIXX(DVaRk))
+TVAR1<-Dk*PIXV+DVaRk
+
+plot(b,TVAR3,type="l",lty=1, lwd=2,main="Tail Value at Risk", xlab="k", ylab="TVaR",col="blue")
+points(k,TVAR1,col="red",lty=2,lwd=2)
+abline(h=EX,col="purple", lty=2, lwd=2)
+legend(0, 1200, legend=c("Tail Value at Risk","Points de la TVaR calculés en k","E[X]"),pch=c(NA,1,NA),lty=c(1,NA,2), cex=1.1,bg='lightgrey',lwd=2:2,col=c("blue","red","purple"))
+
+
+#question i)
+#ESPERANCE TRONQUEE par M
+
+nn<-1:5
+
+EXM<-function(nn){
+  EXM1<-exp(-lam)*(a1/b1)
+  EXM2<-lam^(nn)/(factorial(nn-1))
+  EXM<-EXM1*EXM2
+}
+
+EXXM<-sapply(nn, function(nn) EXM(nn))
+sum(EXXM)
+
+
+
+#espérance conditionnelle par M
+p5<-1/ppois(5,lam)
+
+condiM<-p5*sum(EXXM)
